@@ -65,4 +65,10 @@ public class DrawView extends View {
         this.timeUsed = timeUsed;
         this.invalidate();
     }
+
+    public void clearFaces(){
+        this.faces = new FaceInfo[]{};
+        this.timeUsed = 0;
+        this.invalidate();
+    }
 }

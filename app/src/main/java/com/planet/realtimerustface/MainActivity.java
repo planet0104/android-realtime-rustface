@@ -17,7 +17,9 @@ import android.util.Rational;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -45,6 +47,10 @@ public class MainActivity extends AppCompatActivity{
 
     Detector detector;
     DrawView drawView;
+
+    CameraX.LensFacing facing = CameraX.LensFacing.FRONT;
+    boolean enableDetect = true;
+    Bitmap currentRotatedBitmap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,7 +86,6 @@ public class MainActivity extends AppCompatActivity{
         /* start preview */
 //        int aspRatioW = viewFinder.getWidth(); //get width of screen
 //        int aspRatioH = viewFinder.getHeight(); //get height
-        CameraX.LensFacing facing = CameraX.LensFacing.FRONT;//前置摄像头
 
         int aspRatioW = 480;
         int aspRatioH = 640;
@@ -139,7 +144,7 @@ public class MainActivity extends AppCompatActivity{
                     public void analyze(ImageProxy image, int rotationDegrees){
                         //y'all can add code to analyse stuff here idek go wild.
                         //ImageFormat
-                        if(detector.readyForNext()){
+                        if(enableDetect && detector.readyForNext()){
                             Log.i(TAG, "format="+image.getFormat());
                             Log.d(TAG, "图像旋转rotationDegrees"+rotationDegrees);
                             long t = System.currentTimeMillis();
@@ -153,6 +158,7 @@ public class MainActivity extends AppCompatActivity{
                             Bitmap rotatedBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
                             bitmap.recycle();
                             scaledBitmap.recycle();
+                            currentRotatedBitmap = rotatedBitmap.copy(Bitmap.Config.ARGB_8888, false);
 
                             Log.i(TAG, "图片大小:"+rotatedBitmap.getWidth()+"x"+rotatedBitmap.getHeight()+" imageToBitmap耗时:"+(System.currentTimeMillis()-t)+"ms");
                             detector.detect(rotatedBitmap, 0.7f);
@@ -220,5 +226,35 @@ public class MainActivity extends AppCompatActivity{
             }
         }
         return true;
+    }
+
+    public void changeFront(View view) {
+        if(facing != CameraX.LensFacing.FRONT){
+            facing = CameraX.LensFacing.FRONT;
+            startCamera();
+            drawView.clearFaces();
+        }
+    }
+
+    public void changeBack(View view) {
+        if(facing != CameraX.LensFacing.BACK){
+            facing = CameraX.LensFacing.BACK;
+            startCamera();
+            drawView.clearFaces();
+        }
+    }
+
+    public void stopDetect(View view) {
+        enableDetect = false;
+        drawView.clearFaces();
+    }
+
+    public void startDetect(View view) {
+        enableDetect = true;
+    }
+
+    public void capture(View view) {
+        ImageView img = findViewById(R.id.image);
+        img.setImageBitmap(currentRotatedBitmap);
     }
 }

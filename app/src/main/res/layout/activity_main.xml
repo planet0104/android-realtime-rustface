@@ -7,12 +7,13 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
     <FrameLayout
-        android:layout_width="360dp"
-        android:layout_height="480dp">
+        android:layout_width="300dp"
+        android:layout_height="400dp">
         <TextureView
             android:id="@+id/view_finder"
-            android:layout_width="360dp"
-            android:layout_height="480dp"
+            android:layout_width="300dp"
+            android:layout_height="400dp"
+            android:layout_gravity="center_horizontal"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -22,4 +23,54 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </FrameLayout>
+    <ScrollView
+        android:layout_weight="1"
+        android:layout_width="match_parent"
+        android:layout_height="0dp">
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+                <Button
+                    android:text="前置摄像头"
+                    android:onClick="changeFront"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <Button
+                    android:text="后置摄像头"
+                    android:onClick="changeBack"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+                <Button
+                    android:text="关闭人脸检测"
+                    android:onClick="stopDetect"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <Button
+                    android:text="开启人脸检测"
+                    android:onClick="startDetect"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <Button
+                    android:text="截图"
+                    android:onClick="capture"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+            <ImageView
+                android:scaleType="centerInside"
+                android:id="@+id/image"
+                android:layout_width="100dp"
+                android:layout_height="120dp" />
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>
