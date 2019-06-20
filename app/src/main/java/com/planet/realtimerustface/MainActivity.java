@@ -1,8 +1,14 @@
 package com.planet.realtimerustface;
 
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
+import android.graphics.SurfaceTexture;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.params.StreamConfigurationMap;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -26,6 +32,8 @@ import androidx.camera.core.Preview;
 import androidx.camera.core.PreviewConfig;
 import androidx.core.content.ContextCompat;
 
+import java.util.Arrays;
+
 import io.github.planet0104.rustface.FaceInfo;
 
 public class MainActivity extends AppCompatActivity{
@@ -48,13 +56,15 @@ public class MainActivity extends AppCompatActivity{
         if(allPermissionsGranted()){
             startCamera();
         }else{
-            requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
+            }
         }
     }
 
     private void startCamera() {
         if(detector == null){
-            detector = new Detector(this, "seeta_fd_frontal_v1.0.bin", 4, new Handler(new Handler.Callback() {
+            detector = new Detector(this, "seeta_fd_frontal_v1.0.bin", 3, new Handler(new Handler.Callback() {
                 @Override
                 public boolean handleMessage(Message msg) {
                     FaceInfo[] faces = (FaceInfo[]) msg.obj;
@@ -70,25 +80,26 @@ public class MainActivity extends AppCompatActivity{
         /* start preview */
 //        int aspRatioW = viewFinder.getWidth(); //get width of screen
 //        int aspRatioH = viewFinder.getHeight(); //get height
+        CameraX.LensFacing facing = CameraX.LensFacing.FRONT;//前置摄像头
+
         int aspRatioW = 480;
         int aspRatioH = 640;
         Log.d(TAG, "预览大小:"+aspRatioW+"x"+aspRatioH);
         Rational asp = new Rational (aspRatioW, aspRatioH); //aspect ratio
         Size screen = new Size(aspRatioW, aspRatioH); //size of the screen
-
-//        android.hardware.Camera.CameraInfo info =
-//                new android.hardware.Camera.CameraInfo();
-//        android.hardware.Camera.getCameraInfo(Camera.CameraInfo.CAMERA_FACING_BACK, info);
-
-//        Camera.Size size = camera.getParameters().getPreviewSize();
-//        CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-//        CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics("1");
-//        StreamConfigurationMap streamConfigurationMap = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-//        Size[] sizes = streamConfigurationMap.getOutputSizes(SurfaceTexture.class);
-//        Log.d(TAG, "sizes="+ Arrays.toString(sizes));
+        try{
+            CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+            CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics("1");
+            StreamConfigurationMap streamConfigurationMap = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            Size[] sizes = streamConfigurationMap.getOutputSizes(SurfaceTexture.class);
+            Log.d(TAG, "sizes="+ Arrays.toString(sizes));
+        }catch (Exception e){
+            e.printStackTrace();
+        }
 
         //config obj for preview/viewfinder thingy.
-        PreviewConfig pConfig = new PreviewConfig.Builder().setTargetAspectRatio(asp).setTargetResolution(screen).build();
+        PreviewConfig pConfig = new PreviewConfig.Builder().setTargetAspectRatio(asp)
+                .setLensFacing(facing).setTargetResolution(screen).build();
         Preview preview = new Preview(pConfig); //lets build it
 
         preview.setOnPreviewOutputUpdateListener(
@@ -106,7 +117,7 @@ public class MainActivity extends AppCompatActivity{
                 });
 
         /* image capture */
-        CameraX.LensFacing facing = CameraX.LensFacing.BACK;//前置摄像头
+
 
         //config obj, selected capture mode
         ImageCaptureConfig imgCConfig = new ImageCaptureConfig.Builder().setCaptureMode(ImageCapture.CaptureMode.MIN_LATENCY)
