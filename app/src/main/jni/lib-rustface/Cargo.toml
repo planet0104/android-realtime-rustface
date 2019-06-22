@@ -14,6 +14,9 @@ rustface = "0.1.2"
 version = "0.21.2"
 default_features = false
 
+[build-dependencies]
+cc = "1.0"
+
 [lib]
 crate-type = ["cdylib"]
 

@@ -1,3 +1,4 @@
 /target
+/.history
 **/*.rs.bk
 Cargo.lock

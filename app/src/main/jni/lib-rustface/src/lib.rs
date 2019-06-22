@@ -2,6 +2,7 @@
 // extern crate log;
 // extern crate android_logger;
 mod jni_graphics;
+mod pico;
 
 use image::{ConvertBuffer, GrayImage, ImageBuffer, Rgba};
 use jni::objects::{JClass, JObject, JValue};
