@@ -57,10 +57,10 @@ pub struct Pico {
 
 #[derive(Debug)]
 pub struct Area {
-    x: f32,
-    y: f32,
-    radius: f32,
-    score: f32,
+    pub x: f32,
+    pub y: f32,
+    pub radius: f32,
+    pub score: f32,
 }
 
 impl Pico {

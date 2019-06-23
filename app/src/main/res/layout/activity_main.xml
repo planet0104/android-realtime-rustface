@@ -7,12 +7,12 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
     <FrameLayout
-        android:layout_width="300dp"
-        android:layout_height="400dp">
+        android:layout_width="360dp"
+        android:layout_height="480dp">
         <TextureView
             android:id="@+id/view_finder"
-            android:layout_width="300dp"
-            android:layout_height="400dp"
+            android:layout_width="360dp"
+            android:layout_height="480dp"
             android:layout_gravity="center_horizontal"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"

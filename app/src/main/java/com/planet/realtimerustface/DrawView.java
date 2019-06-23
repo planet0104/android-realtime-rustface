@@ -51,6 +51,7 @@ public class DrawView extends View {
                 int width = (int)(face.widthRatio * getMeasuredWidth());
                 int height = (int)(face.heightRatio * getMeasuredHeight());
                 canvas.drawRect(new Rect(x, y, x+width, y+height),paint);
+//                canvas.drawRect(new Rect(face.x, face.y, face.x+face.width, face.y+face.height),paint);
             }
         }
         paint.setTextSize(32);

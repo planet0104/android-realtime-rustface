@@ -11,10 +11,6 @@ import java.io.InputStream;
  * 基于rustface库的人脸检测
  */
 public class RustFace {
-    static{
-        System.loadLibrary("rustface");
-    }
-
     /**
      * 检测人脸
      * @param bitmap 图片

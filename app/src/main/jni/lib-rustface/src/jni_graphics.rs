@@ -35,7 +35,7 @@ pub struct AndroidBitmapInfo {
     pub flags: c_uint, // 0 for now
 }
 
-#[link(name = "jnigraphics")]
+#[link(name = "jnigraphics", kind="dylib")]
 #[allow(non_snake_case)]
 extern "C" {
     ///给定一个java位图对象，为它填写AndroidBitmap结构。如果调用失败，将忽略info参数

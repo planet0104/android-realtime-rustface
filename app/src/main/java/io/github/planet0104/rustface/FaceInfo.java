@@ -25,6 +25,7 @@ public class FaceInfo {
         this.heightRatio = heightRatio;
     }
 
+
     @Override
     public String toString() {
         return "FaceInfo{" +
@@ -33,6 +34,10 @@ public class FaceInfo {
                 ", width=" + width +
                 ", height=" + height +
                 ", score=" + score +
+                ", xRatio=" + xRatio +
+                ", yRatio=" + yRatio +
+                ", widthRatio=" + widthRatio +
+                ", heightRatio=" + heightRatio +
                 '}';
     }
 }
