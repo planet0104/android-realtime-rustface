@@ -1,6 +1,6 @@
-// #[macro_use]
-// extern crate log;
-// extern crate android_logger;
+#[macro_use]
+extern crate log;
+extern crate android_logger;
 
 #[macro_use]
 extern crate lazy_static;
@@ -8,13 +8,13 @@ extern crate lazy_static;
 mod jni_graphics;
 mod pico;
 
-use image::{ConvertBuffer, GrayImage, ImageBuffer, Rgba};
+use image::{ConvertBuffer, GrayImage, RgbImage, ImageBuffer, Luma, Rgb, Rgba};
 use jni::objects::{JClass, JString, JObject, JValue};
 use jni::sys::{jbyteArray, jobject, jdouble, jfloat, jint};
 use jni::{JNIEnv, JavaVM};
 use rustface::{Detector, ImageData};
 use std::cell::RefCell;
-// use std::time::Instant;
+use std::time::Instant;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -23,14 +23,14 @@ thread_local! {
 }
 
 lazy_static! {
-    static ref PICOS: Arc<Mutex<HashMap<String, pico::Pico>>> = Arc::new(Mutex::new(HashMap::new()));
+    static ref PICOS: Arc<Mutex<HashMap<String, (pico::Pico, Option<(Vec<u8>, u32, u32)>)>>> = Arc::new(Mutex::new(HashMap::new()));
 }
 
 //JNI加载完成
 #[no_mangle]
 pub extern "C" fn JNI_OnLoad(_jvm: JavaVM, _reserved: *mut std::ffi::c_void) -> jint {
-    // android_logger::init_once(android_logger::Config::default().with_min_level(log::Level::Info));
-    // info!("JNI_OnLoad.");
+    android_logger::init_once(android_logger::Config::default().with_min_level(log::Level::Info));
+    info!("JNI_OnLoad.");
     jni::sys::JNI_VERSION_1_6
 }
 
@@ -75,7 +75,7 @@ pub extern "C" fn Java_io_github_planet0104_rustface_Pico_create(
         let mut picos = PICOS.lock().map_err(|err| format!("Pico创建失败: {:?}", err))?;
         if !picos.contains_key(&key){
             let pico = pico::Pico::new(data);
-            picos.insert(key, pico);
+            picos.insert(key, (pico, None));
         }
         Ok(JObject::from(jkey))
     }() {
@@ -104,8 +104,9 @@ pub extern "C" fn Java_io_github_planet0104_rustface_Pico_setParameter(
         let val:String = env.get_string(val).map_err(mje)?.into();
         let mut picos = PICOS.lock().map_err(|err| format!("Pico删除失败: {:?}", err))?;
         match picos.get_mut(&pico_key){
-            Some(pico) => {
+            Some((pico, _last_image)) => {
                 match key.as_str(){
+                    "noupdatememory" => pico.set_noupdatememory(val.parse::<i32>().map_err(mrie)?),
                     "minsize" => pico.set_minsize(val.parse::<i32>().map_err(mrie)?),
                     "maxsize" => pico.set_maxsize(val.parse::<i32>().map_err(mrie)?),
                     "scalefactor" => pico.set_scalefactor(val.parse::<f32>().map_err(mrfe)?),
@@ -134,7 +135,7 @@ pub extern "C" fn Java_io_github_planet0104_rustface_Pico_findObjects(
     _class: JClass,
     pico_key: JString,
     bitmap: JObject,
-    mut scale: jfloat,
+    rotation_degrees: jint,
 ) -> jobject {
     let mje = |err| format!("识别失败 {:?}", err);
     let mut rects = None;
@@ -146,59 +147,58 @@ pub extern "C" fn Java_io_github_planet0104_rustface_Pico_findObjects(
         if pico.is_none(){
             return Err("Pico不存在，请先创建".to_string());
         }
-        let pico = pico.unwrap();
+        let (pico, _last_image) = pico.unwrap();
 
         jni_graphics::lock_bitmap(&env, &bitmap, |info, pixels| {
             //只支持argb888格式
             if info.format != jni_graphics::ANDROID_BITMAP_FORMAT_RGBA_8888 {
                 Err("图片格式只支持RGBA_8888!".to_string())
             } else {
-                // info!("lock_bitmap耗时:{}ms", t.elapsed().as_millis());
-                // t = Instant::now();
                 //创建
                 let image: Option<ImageBuffer<Rgba<u8>, Vec<u8>>> =
                     ImageBuffer::from_raw(info.width, info.height, pixels.to_vec());
                 // info!("image_from_raw耗时:{}ms", t.elapsed().as_millis());
                 // t = Instant::now();
-                if let Some(image) = image {
+                if let Some(rgba_image) = image {
                     //灰度
-                    let mut image: GrayImage = image.convert();
-                    // info!("灰度耗时:{}ms", t.elapsed().as_millis());
+                    let mut image: GrayImage = rgba_image.convert();
+                    // info!("rust:灰度耗时:{}ms", t.elapsed().as_millis());
                     // t = Instant::now();
-                    //缩放
-                    if scale < 1.0 {
-                        let (width, height) = (
-                            (info.width as f32 * scale) as u32,
-                            (info.height as f32 * scale) as u32,
-                        );
-                        image = image::imageops::resize(
-                            &image,
-                            width,
-                            height,
-                            image::FilterType::Nearest,
-                        );
-                    } else {
-                        scale = 1.0;
-                    }
-                    // info!("缩放耗时:{}ms", t.elapsed().as_millis());
+
+                    //旋转
+                    match rotation_degrees{
+                        90 => {
+                            image = image::imageops::rotate90(&image);
+                        },
+                        180 => {
+                            image = image::imageops::rotate180(&image);
+                        },
+                        270 => {
+                            image = image::imageops::rotate270(&image);
+                            //镜像翻转
+                            image = image::imageops::flip_horizontal(&image);
+                        }
+                        _ => ()
+                    };
+                    // info!("rust:旋转耗时:{}ms", t.elapsed().as_millis());
                     // t = Instant::now();
 
                     //识别
-                    // info!("image_data耗时:{}ms", t.elapsed().as_millis());
-                    // t = Instant::now();
                     let (width, height) = (image.width(), image.height());
-                    let areas = pico.find_objects(&image.into_raw(), height as i32, width as i32, width as i32);
-                    // info!("detect耗时:{}ms", t.elapsed().as_millis());
-
+                    let raw_data = image.into_raw();
+                    let areas = pico.find_objects(&raw_data, height as i32, width as i32, width as i32);
+                    // *last_image = Some(rgb_image);
+                    // info!("rust:find_objects耗时:{}ms", t.elapsed().as_millis());
+                    
                     //创建对象数组
                     let mut arr = vec![];
                     for area in areas {
                         let (x, y, radius, score) = {
                             (
-                                area.x / scale,
-                                area.y / scale,
-                                area.radius / scale,
-                                area.score / scale
+                                area.x,
+                                area.y,
+                                area.radius,
+                                area.score
                             )
                         };
                         arr.push(
@@ -210,8 +210,8 @@ pub extern "C" fn Java_io_github_planet0104_rustface_Pico_findObjects(
                                     JValue::from(y),
                                     JValue::from(radius),
                                     JValue::from(score),
-                                    JValue::from(info.width as i32),
-                                    JValue::from(info.height as i32)
+                                    JValue::from(width as i32),
+                                    JValue::from(height as i32)
                                 ],
                             )
                             .map_err(mje)?,
@@ -238,6 +238,168 @@ pub extern "C" fn Java_io_github_planet0104_rustface_Pico_findObjects(
             }
         })?;
         Ok(())
+    })();
+
+    if result.is_err() {
+        let err = result.err();
+        // error!("{:?}", &err);
+        let _ = env.throw_new("java/lang/Exception", format!("{:?}", err));
+        JObject::null().into_inner()
+    } else {
+        rects.unwrap()
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Java_io_github_planet0104_rustface_Pico_getLastImage(
+    env: JNIEnv,
+    _class: JClass,
+    pico_key: JString
+) -> jobject {
+    let mje = |err| format!("图片获取失败 {:?}", err);
+    let result = (|| -> Result<jbyteArray, String> {
+        let pico_key:String = env.get_string(pico_key).map_err(mje)?.into();
+        let mut picos = PICOS.lock().map_err(|err| format!("图片获取失败: {:?}", err))?;
+        let pico = picos.get_mut(&pico_key);
+        if pico.is_none(){
+            return Ok(JObject::null().into_inner());
+        }
+        if let (_pico, Some((gray, width, height))) = pico.unwrap(){
+            let mut jpeg_data = vec![];
+            let mut encoder = image::jpeg::JPEGEncoder::new(&mut jpeg_data);
+            match encoder.encode(&gray, *width, *height, <Luma<u8> as image::Pixel>::color_type()){
+                Ok(_) => {
+                    Ok(env.byte_array_from_slice(&jpeg_data).map_err(mje)?)
+                }
+                Err(err) => {
+                    error!("getLastImage: {:?}", err);
+                    return Ok(JObject::null().into_inner());
+                }
+            }
+        }else{
+            Ok(JObject::null().into_inner())
+        }
+    })();
+
+    match result{
+        Err(err) => {
+            let _ = env.throw_new("java/lang/Exception", format!("{:?}", err));
+            JObject::null().into_inner()
+        }
+        Ok(obj) => {
+            obj
+        }
+    }
+}
+
+//在慢速手机上，renderScript解码yuv速度会很慢，可以使用cpu解码yuv图像，直接创建灰度图
+#[no_mangle]
+pub extern "C" fn Java_io_github_planet0104_rustface_Pico_findObjectsYUV420P(
+    env: JNIEnv,
+    _class: JClass,
+    pico_key: JString,
+    data: jbyteArray,
+    width:jint,
+    height:jint,
+    rotation_degrees: jint,
+) -> jobject {
+    let mje = |err| format!("识别失败 {:?}", err);
+    let mut rects = None;
+    let result = (|| -> Result<(), String> {
+        let pico_key:String = env.get_string(pico_key).map_err(mje)?.into();
+        let mut picos = PICOS.lock().map_err(|err| format!("识别失败: {:?}", err))?;
+        let pico = picos.get_mut(&pico_key);
+        if pico.is_none(){
+            return Err("Pico不存在，请先创建".to_string());
+        }
+        let (pico, last_image) = pico.unwrap();
+
+        let data = env.convert_byte_array(data).map_err(mje)?;
+        // info!("convert_byte_array耗时:{}ms", t.elapsed().as_millis()); t = Instant::now();
+        let gray_data = decode_yuv420sp(&data, width, height);
+        // info!("decode_yuv420sp耗时:{}ms", t.elapsed().as_millis()); t = Instant::now();
+
+        //创建
+        let image: Option<ImageBuffer<Luma<u8>, Vec<u8>>> =
+            ImageBuffer::from_raw(width as u32, height as u32, gray_data);
+        // info!("image_from_raw耗时:{}ms", t.elapsed().as_millis()); t = Instant::now();
+        if let Some(mut image) = image {
+            //灰度
+            // let mut image: GrayImage = image;
+            // info!("rust:灰度耗时:{}ms", t.elapsed().as_millis());
+            // t = Instant::now();
+
+            //旋转
+            match rotation_degrees{
+                90 => {
+                    image = image::imageops::rotate90(&image);
+                },
+                180 => {
+                    image = image::imageops::rotate180(&image);
+                },
+                270 => {
+                    image = image::imageops::rotate270(&image);
+                    //镜像翻转
+                    image = image::imageops::flip_horizontal(&image);
+                }
+                _ => ()
+            };
+            // info!("rust:旋转耗时:{}ms", t.elapsed().as_millis());
+            // t = Instant::now();
+
+            //识别
+            let (width, height) = (image.width(), image.height());
+            // *last_image = Some(image.clone());
+            let raw_data = image.into_raw();
+            let areas = pico.find_objects(&raw_data, height as i32, width as i32, width as i32);
+            *last_image = Some((raw_data, width, height));
+            // info!("rust:find_objects耗时:{}ms", t.elapsed().as_millis());
+            
+            //创建对象数组
+            let mut arr = vec![];
+            for area in areas {
+                let (x, y, radius, score) = {
+                    (
+                        area.x,
+                        area.y,
+                        area.radius,
+                        area.score
+                    )
+                };
+                arr.push(
+                    env.new_object(
+                        "io/github/planet0104/rustface/Area",
+                        "(FFFFII)V",
+                        &[
+                            JValue::from(x),
+                            JValue::from(y),
+                            JValue::from(radius),
+                            JValue::from(score),
+                            JValue::from(width as i32),
+                            JValue::from(height as i32)
+                        ],
+                    )
+                    .map_err(mje)?,
+                );
+            }
+
+            let face_info_array = env
+                .new_object_array(
+                    arr.len() as i32,
+                    "io/github/planet0104/rustface/Area",
+                    JObject::null(),
+                )
+                .map_err(mje)?;
+            for (i, r) in arr.iter().enumerate() {
+                env.set_object_array_element(face_info_array, i as i32, JObject::from(*r))
+                    .map_err(mje)?;
+            }
+
+            rects = Some(face_info_array);
+            Ok(())
+        } else {
+            Err("图片读取失败，请查格式!".to_string())
+        }
     })();
 
     if result.is_err() {
@@ -493,4 +655,48 @@ pub extern "C" fn Java_io_github_planet0104_rustface_RustFace_detect(
     } else {
         rects.unwrap()
     }
+}
+
+/// android: YUV420SP 转 rgb
+pub fn decode_yuv420sp(data:&[u8], width:i32, height:i32) -> Vec<u8>{
+    let frame_size = width * height;
+    let mut yp = 0;
+    // let mut rgb = vec![0; (width*height*3) as usize];
+    let mut gray = vec![0; (width*height) as usize];
+    // let mut pi = 0;
+    for j in 0..height{
+        let (mut uvp, mut u, mut v) = ((frame_size + (j >> 1) * width) as usize, 0, 0);
+        for i in 0..width{
+            let mut y = (0xff & data[yp] as i32) - 16;  
+            if y < 0 { y = 0; }
+            if i & 1 == 0{
+                v = (0xff & data[uvp] as i32) - 128;
+                uvp += 1;
+                u = (0xff & data[uvp] as i32) - 128;  
+                uvp += 1;
+            }
+            let y1192 = 1192 * y;  
+            let mut r = y1192 + 1634 * v;
+            let mut g = y1192 - 833 * v - 400 * u;
+            let mut b = y1192 + 2066 * u;
+
+            if r < 0 { r = 0; } else if r > 262143 { r = 262143; };
+            if g < 0 { g = 0; } else if g > 262143 { g = 262143; }
+            if b < 0 { b = 0;} else if b > 262143 { b = 262143; }
+
+            //rgb[yp] = 0xff000000u32 as i32 | ((r << 6) & 0xff0000) | ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
+            
+            // rgb[pi] = (r>>10) as u8;
+            // rgb[pi+1] = (g>>10) as u8;
+            // rgb[pi+2] = (b >> 10) as u8;
+            // pi += 3;
+
+            let color = (2*r+7*g+b)/10;
+
+            gray[yp] = (color >> 10) as u8;
+
+            yp += 1;
+        }
+    }
+    gray
 }

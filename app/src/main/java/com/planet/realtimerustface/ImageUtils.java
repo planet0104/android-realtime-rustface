@@ -120,7 +120,6 @@ public class ImageUtils {
                 }
             }
         }
-
         return output;
     }
 }

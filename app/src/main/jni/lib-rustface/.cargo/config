@@ -1,15 +1,23 @@
-[target.arm-linux-androideabi]
-ar = "arm-linux-androideabi-ar"
-linker = "arm-linux-androideabi-gcc"
-
 [target.armv7-linux-androideabi]
-ar = "C:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/arm-linux-androideabi-ar"
-linker = "C:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/armv7a-linux-androideabi17-clang.cmd"
+ar = "F:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/arm-linux-androideabi-ar"
+linker = "F:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/armv7a-linux-androideabi17-clang.cmd"
 
 [target.aarch64-linux-android]
-ar = "C:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android-ar"
-linker = "C:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android21-clang.cmd"
+ar = "F:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android-ar"
+linker = "F:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android21-clang.cmd"
 
 [target.i686-linux-android]
-ar = "C:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/i686-linux-android-ar"
-linker = "C:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/i686-linux-android17-clang.cmd"
+ar = "F:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/i686-linux-android-ar"
+linker = "F:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/i686-linux-android17-clang.cmd"
+
+#[target.armv7-linux-androideabi]
+#ar = "C:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/arm-linux-androideabi-ar"
+#linker = "C:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/armv7a-linux-androideabi17-clang.cmd"
+
+#[target.aarch64-linux-android]
+#ar = "C:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android-ar"
+#linker = "C:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android21-clang.cmd"
+
+#[target.i686-linux-android]
+#ar = "C:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/i686-linux-android-ar"
+#linker = "C:/android-ndk-r20/toolchains/llvm/prebuilt/windows-x86_64/bin/i686-linux-android17-clang.cmd"

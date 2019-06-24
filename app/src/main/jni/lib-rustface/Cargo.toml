@@ -5,8 +5,8 @@ authors = ["JiaYe"]
 edition = "2018"
 
 [dependencies]
-#log = "0.4.6"
-#android_logger = "0.8.3"
+log = "0.4.6"
+android_logger = "0.8.3"
 jni = { version = "0.12.3", default-features = false }
 rustface = "0.1.2"
 md5 = "0.6.1"
@@ -15,6 +15,7 @@ lazy_static = "1.3.0"
 [dependencies.image]
 version = "0.21.2"
 default_features = false
+features = ["jpeg"]
 
 [build-dependencies]
 cc = "1.0"

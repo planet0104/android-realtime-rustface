@@ -8,8 +8,11 @@ import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.util.Rational;
 import android.util.Size;
@@ -32,7 +35,6 @@ import androidx.camera.core.Preview;
 import androidx.camera.core.PreviewConfig;
 import androidx.core.content.ContextCompat;
 
-import com.planet.realtimerustface.DrawView;
 import com.planet.realtimerustface.ImageUtils;
 import com.planet.realtimerustface.R;
 
@@ -40,8 +42,6 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import io.github.planet0104.rustface.Area;
-import io.github.planet0104.rustface.FaceInfo;
-import io.github.planet0104.rustface.Pico;
 
 public class PicoActivity extends AppCompatActivity{
     static{
@@ -57,14 +57,12 @@ public class PicoActivity extends AppCompatActivity{
 
     CameraX.LensFacing facing = CameraX.LensFacing.FRONT;
     boolean enableDetect = true;
-    Bitmap currentRotatedBitmap;
-    private Pico pico;
-    private long nextFrameTime = System.currentTimeMillis();
+    private Detector picoDetector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_pico);
         viewFinder = findViewById(R.id.view_finder);
         drawView = findViewById(R.id.drawView);
 
@@ -78,9 +76,17 @@ public class PicoActivity extends AppCompatActivity{
     }
 
     private void startCamera() {
-        if(pico == null){
+        if(picoDetector == null){
             try {
-                pico = new Pico(this, "facefinder");
+                picoDetector = new Detector(this,"facefinder",  new Handler(new Handler.Callback() {
+                    @Override
+                    public boolean handleMessage(Message msg) {
+                        Area[] faces = (Area[]) msg.obj;
+                        drawView.drawFaces(faces, msg.arg1);
+                        return false;
+                    }
+                }));
+                picoDetector.start();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -149,39 +155,14 @@ public class PicoActivity extends AppCompatActivity{
                     public void analyze(ImageProxy image, int rotationDegrees){
                         //y'all can add code to analyse stuff here idek go wild.
                         //ImageFormat
-                        if(enableDetect && System.currentTimeMillis()>=nextFrameTime){
-                            nextFrameTime = System.currentTimeMillis()+83;
-                            Log.i(TAG, "format="+image.getFormat());
-                            Log.d(TAG, "图像旋转rotationDegrees"+rotationDegrees);
-                            long t = System.currentTimeMillis();
-                            Bitmap bitmap = ImageUtils.imageToBitmap(getBaseContext(), image);
-                            Matrix matrix = new Matrix();
-
-                            matrix.postRotate(rotationDegrees);
-
-                            Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, bitmap.getWidth(), bitmap.getHeight(), true);
-
-                            Bitmap rotatedBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
-                            bitmap.recycle();
-                            scaledBitmap.recycle();
-                            currentRotatedBitmap = rotatedBitmap.copy(Bitmap.Config.ARGB_8888, false);
-
-//                            try {
-//                                rotatedBitmap = BitmapFactory.decodeStream(getAssets().open("user.png"));
-//                            } catch (IOException e) {
-//                                e.printStackTrace();
-//                            }
-
-//                            Log.i(TAG, "图片大小:"+rotatedBitmap.getWidth()+"x"+rotatedBitmap.getHeight()+" imageToBitmap耗时:"+(System.currentTimeMillis()-t)+"ms");
-//                            t = System.currentTimeMillis();
-                            Area[] areas = pico.findObjects(rotatedBitmap, 0.7f);
-                            rotatedBitmap.recycle();
-//                        Log.d(TAG, Arrays.toString(areas));
-                            FaceInfo[] faces = new FaceInfo[areas.length];
-                            for(int i=0; i<faces.length; i++){
-                                faces[i] = areas[i].asFaceInfo();
-                            }
-                            drawView.drawFaces(faces, (int)(System.currentTimeMillis()-t));
+                        Image rawImage = image.getImage();
+                        if(enableDetect && rawImage!=null && picoDetector.readyForNext()){
+                            Detector.DetectInfo info = new Detector.DetectInfo();
+                            info.image = ImageUtils.imageToByteBuffer(rawImage).array();
+                            info.width = rawImage.getWidth();
+                            info.height = rawImage.getHeight();
+                            info.rotationDegrees = rotationDegrees;
+                            picoDetector.detect(info);
                         }
                     }
                 });
@@ -275,6 +256,6 @@ public class PicoActivity extends AppCompatActivity{
 
     public void capture(View view) {
         ImageView img = findViewById(R.id.image);
-        img.setImageBitmap(currentRotatedBitmap);
+        img.setImageBitmap(viewFinder.getBitmap());
     }
 }

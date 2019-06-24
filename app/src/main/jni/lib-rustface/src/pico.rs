@@ -53,6 +53,7 @@ pub struct Pico {
     slot: [i32; 1],
     qthreshold: f32, //检测质量阈值（> = 0.0）：将丢弃估计质量低于此阈值的所有检测（默认值为5.0）
     noclustering: bool, //true for test
+    noupdatememory: bool //默认关闭
 }
 
 #[derive(Debug)]
@@ -78,6 +79,7 @@ impl Pico {
             slot: [1],
             qthreshold: 5.0,
             noclustering: false,
+            noupdatememory: false,
         }
     }
 
@@ -103,6 +105,10 @@ impl Pico {
 
     pub fn set_qthreshold(&mut self, qthreshold: f32) {
         self.qthreshold = qthreshold;
+    }
+
+    pub fn set_noupdatememory(&mut self, noupdatememory: i32) {
+        self.noupdatememory = if noupdatememory==0 { false }else { true};
     }
 
     /// find objects
@@ -137,18 +143,22 @@ impl Pico {
                 maxsize,
             )
         };
-        ndetections = unsafe {
-            update_memory(
-                self.slot.as_mut_ptr(),
-                self.memory.as_mut_ptr(),
-                self.counts.as_mut_ptr(),
-                NMEMSLOTS,
-                MAXSLOTSIZE,
-                self.rcsq.as_mut_ptr(),
-                ndetections,
-                MAXNDETECTIONS,
-            )
-        };
+
+        if !self.noupdatememory{
+            ndetections = unsafe {
+                update_memory(
+                    self.slot.as_mut_ptr(),
+                    self.memory.as_mut_ptr(),
+                    self.counts.as_mut_ptr(),
+                    NMEMSLOTS,
+                    MAXSLOTSIZE,
+                    self.rcsq.as_mut_ptr(),
+                    ndetections,
+                    MAXNDETECTIONS,
+                )
+            };
+        }
+
         if !self.noclustering {
             ndetections = unsafe { cluster_detections(self.rcsq.as_mut_ptr(), ndetections) };
         }
