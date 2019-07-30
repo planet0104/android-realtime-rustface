@@ -1,6 +1,7 @@
 package com.planet.realtimerustface.pico;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
@@ -42,6 +43,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import io.github.planet0104.rustface.Area;
+import io.github.planet0104.rustface.Pico;
 
 public class PicoActivity extends AppCompatActivity{
     static{
@@ -54,6 +56,7 @@ public class PicoActivity extends AppCompatActivity{
     TextureView viewFinder;
 
     DrawView drawView;
+    int detectCount = 0;
 
     CameraX.LensFacing facing = CameraX.LensFacing.FRONT;
     boolean enableDetect = true;
@@ -73,6 +76,7 @@ public class PicoActivity extends AppCompatActivity{
                 requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
             }
         }
+        detectCount = 0;
     }
 
     private void startCamera() {
@@ -82,6 +86,21 @@ public class PicoActivity extends AppCompatActivity{
                     @Override
                     public boolean handleMessage(Message msg) {
                         Area[] faces = (Area[]) msg.obj;
+                        //1~2秒中准备时间 = 16
+                        if(faces.length>0){
+                            detectCount += 1;
+                            if(detectCount>=20){
+                                Toast.makeText(PicoActivity.this, "检测到人脸！！", Toast.LENGTH_LONG).show();
+                                //在onActivityResult中返回人脸的数据和图片
+                                Intent i = new Intent();
+                                i.putExtra("faces", faces);
+                                i.putExtra("bitmap", viewFinder.getBitmap());
+                                setResult(RESULT_OK, new Intent());
+                                finish();
+                            }
+                        }else{
+                            detectCount = 0;
+                        }
                         drawView.drawFaces(faces, msg.arg1);
                         return false;
                     }

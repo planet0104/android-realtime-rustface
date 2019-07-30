@@ -14,7 +14,7 @@
         <activity android:name=".MainActivity">
 
         </activity>
-        <activity android:name=".pico.PicoActivity">
+        <activity android:name=".pico.PicoActivity" android:theme="@style/TransActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

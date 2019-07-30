@@ -185,8 +185,8 @@ pub extern "C" fn Java_io_github_planet0104_rustface_Pico_findObjects(
 
                     //识别
                     let (width, height) = (image.width(), image.height());
-                    let raw_data = image.into_raw();
-                    let areas = pico.find_objects(&raw_data, height as i32, width as i32, width as i32);
+                    // let raw_data = image.into_raw();
+                    let areas = pico.find_objects(&image, height as i32, width as i32, width as i32);
                     // *last_image = Some(rgb_image);
                     // info!("rust:find_objects耗时:{}ms", t.elapsed().as_millis());
                     
