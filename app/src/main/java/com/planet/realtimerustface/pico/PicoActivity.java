@@ -3,9 +3,11 @@ package com.planet.realtimerustface.pico;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
+import android.graphics.drawable.Drawable;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.params.StreamConfigurationMap;
@@ -67,6 +69,15 @@ public class PicoActivity extends AppCompatActivity{
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pico);
         viewFinder = findViewById(R.id.view_finder);
+
+        //View root = findViewById(R.id.root);
+        View root = viewFinder;
+        root.setOutlineProvider(new TextureVideoViewOutlineProvider(20));
+        root.setClipToOutline(true);
+        Resources res = getResources();
+        Drawable drawable = res.getDrawable(android.R.color.transparent);
+        getWindow().setBackgroundDrawable(drawable);
+
         drawView = findViewById(R.id.drawView);
 
         if(allPermissionsGranted()){
