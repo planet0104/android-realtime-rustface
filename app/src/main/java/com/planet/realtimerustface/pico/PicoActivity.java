@@ -60,7 +60,7 @@ public class PicoActivity extends AppCompatActivity{
     DrawView drawView;
     int detectCount = 0;
 
-    CameraX.LensFacing facing = CameraX.LensFacing.FRONT;
+    CameraX.LensFacing facing = CameraX.LensFacing.BACK;
     boolean enableDetect = true;
     private Detector picoDetector;
 
@@ -189,6 +189,7 @@ public class PicoActivity extends AppCompatActivity{
                         if(enableDetect && rawImage!=null && picoDetector.readyForNext()){
                             Detector.DetectInfo info = new Detector.DetectInfo();
                             info.image = ImageUtils.imageToByteBuffer(rawImage).array();
+                            info.bitmap = viewFinder.getBitmap();
                             info.width = rawImage.getWidth();
                             info.height = rawImage.getHeight();
                             info.rotationDegrees = rotationDegrees;

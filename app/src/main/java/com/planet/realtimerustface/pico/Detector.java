@@ -1,14 +1,19 @@
 package com.planet.realtimerustface.pico;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
+
+import com.zxing.BarcodeReader;
 
 import java.io.IOException;
 
 import io.github.planet0104.rustface.Area;
 import io.github.planet0104.rustface.Pico;
+import io.github.planet0104.zxing.ZxingTest;
 
 public class Detector extends Thread{
     static final String TAG = com.planet.realtimerustface.Detector.class.getSimpleName();
@@ -26,6 +31,7 @@ public class Detector extends Thread{
 
     public static class DetectInfo{
         public byte[] image;
+        public Bitmap bitmap;
         public int width;
         public int height;
         public int rotationDegrees;
@@ -47,6 +53,21 @@ public class Detector extends Thread{
             public boolean handleMessage(Message msg) {
                 DetectInfo info = (DetectInfo) msg.obj;
                 long t = System.currentTimeMillis();
+
+//                Log.d(TAG, "开始识别二维码！！！>>>>>>>>>");
+//                    ZxingTest.test();
+                try {
+//                    BarcodeReader reader = new BarcodeReader();
+//                    BarcodeReader.Result result = reader.read(info.bitmap, info.width, info.height);
+//                    Log.d(TAG, "二维码识别结果:"+result.getText()+", "+result.getFormat());
+                     String result = ZxingTest.readQrcode(info.image, info.width, info.height, info.rotationDegrees);
+                    Log.d(TAG, "二维码识别结果:"+result);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                //    java.lang.UnsatisfiedLinkError: dlopen failed: cannot locate symbol "_ZNSt6__ndk119__shared_weak_countD2Ev" referenced by "/data/app/com.planet.realtimerustface-1/lib/arm/libexceltojson.so"...
+
                 Area[] areas = pico.findObjectsYUV420P(info.image, info.width, info.height, info.rotationDegrees);
                 Message msg1 = Detector.this.callback.obtainMessage();
                 msg1.obj = areas;
